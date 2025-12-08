@@ -1,0 +1,47 @@
+[33mcommit 5cac8eb4431adab2f1f066621915fcb998a43072[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m)[m
+Author: lichuyi <lichuyi459@gmail.com>
+Date:   Tue Dec 9 01:02:36 2025 +0800
+
+    chore: 修改部署文档中PM2进程管理相关
+
+[33mcommit 17a1092476f6e703cfbd43cab828e61b35c9929d[m[33m ([m[1;31morigin/main[m[33m)[m
+Author: lichuyi <lichuyi459@gmail.com>
+Date:   Tue Dec 9 00:15:36 2025 +0800
+
+    chore: 增加环境配置示例文件
+
+[33mcommit 8a80bb08a496254882f6311f9892d9e25e390009[m
+Author: lichuyi <lichuyi459@gmail.com>
+Date:   Tue Dec 9 00:08:49 2025 +0800
+
+    chore: 增加单测
+
+[33mcommit aad4297d47b2062aadbee3b060ffce1e452f4cb9[m
+Author: lichuyi <lichuyi459@gmail.com>
+Date:   Mon Dec 8 23:54:35 2025 +0800
+
+    chore: 实现提交与文件上传模块、业务逻辑完善、全局增强与静态服务
+
+[33mcommit 6c1a3623fdf0beb900a67974f34d0c8b231af496[m
+Author: lichuyi <lichuyi459@gmail.com>
+Date:   Mon Dec 8 21:49:21 2025 +0800
+
+    chore: 实现数据库设计和认证模块
+
+[33mcommit fac947fad4d73d80182bb211fb537681f7d36f30[m
+Author: lichuyi <lichuyi459@gmail.com>
+Date:   Mon Dec 8 21:01:21 2025 +0800
+
+    chore: 添加安装项目依赖
+
+[33mcommit 2eeb310fe519238e59b34582b51d88392ad51a04[m
+Author: lichuyi <lichuyi459@gmail.com>
+Date:   Mon Dec 8 20:23:50 2025 +0800
+
+    chore: 添加api文档修改package.json中项目名称
+
+[33mcommit 3d64757a55626c4d3d9af67b5e6d6447f4fe7657[m
+Author: lichuyi <lichuyi459@gmail.com>
+Date:   Mon Dec 8 19:28:27 2025 +0800
+
+    chore: 初始化提交后端nest.js项目
