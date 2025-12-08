@@ -12,7 +12,7 @@
 - 数据库：PostgreSQL
 - 认证：JWT（`/auth/login`）
 - 静态文件：本地 `uploads/` 目录，通过 `/uploads/**` 暴露
-- 进程管理：systemd（推荐），也可选 PM2
+- 进程管理：PM2（推荐），也可选 systemd
 - 反向代理（可选）：Nginx + HTTPS
 
 ---
@@ -87,9 +87,14 @@ sudo -u postgres psql
 在 psql 里执行（根据需要修改数据库名、用户名和密码）：
 
 ```sql
-CREATE DATABASE lcygzback_prod;
 CREATE USER lcygzback_user WITH PASSWORD '强密码自己改';
-GRANT ALL PRIVILEGES ON DATABASE lcygzback_prod TO lcygzback_user;
+CREATE DATABASE lcygzback_prod OWNER lcygzback_user;
+
+-- 切换到新创建的数据库
+\c lcygzback_prod
+
+-- 关键：确保应用用户在 public schema 下有建表权限（Prisma 迁移需要在此 schema 创建表）
+GRANT USAGE, CREATE ON SCHEMA public TO lcygzback_user;
 \q
 ```
 
@@ -98,7 +103,7 @@ GRANT ALL PRIVILEGES ON DATABASE lcygzback_prod TO lcygzback_user;
 在后面 `.env` 中会用到：
 
 ```text
-DATABASE_URL="postgresql://lcygzback_user:强密码自己改@localhost:5432/lcygzback_prod?schema=public"
+DATABASE_URL="postgresql://lcygzback_user:lichuyi459..@localhost:5432/lcygzback_prod?schema=public"
 ```
 
 ---
@@ -198,7 +203,7 @@ openssl rand -hex 32
 
 ---
 
-## 8. 生产运行方式一：systemd 服务（推荐）
+## 8. 生产运行（使用 PM2，推荐）
 
 ### 8.1 创建运行目录与上传目录
 
@@ -210,7 +215,51 @@ mkdir -p uploads
 chmod 755 uploads
 ```
 
-### 8.2 创建 systemd 单元文件
+### 8.2 安装 PM2
+
+```bash
+npm install -g pm2
+```
+
+### 8.3 使用 PM2 启动应用
+
+```bash
+cd /opt/lcygzback
+
+# 第一次启动（使用构建后的 dist/src/main.js）
+NODE_ENV=production pm2 start dist/src/main.js --name lcygzback
+```
+
+### 8.4 设置开机自启
+
+```bash
+pm2 startup systemd
+pm2 save
+```
+
+### 8.5 常用 PM2 命令
+
+```bash
+# 查看进程状态
+pm2 status
+
+# 重启服务
+pm2 restart lcygzback
+
+# 查看日志
+pm2 logs lcygzback
+
+# 停止服务
+pm2 stop lcygzback
+```
+
+---
+
+## 9. 生产运行方式二：systemd 服务（可选）
+
+如果你更习惯使用 systemd 管理服务，可以参考本节。
+
+### 9.1 创建 systemd 单元文件
 
 使用 root 用户创建服务文件：
 
@@ -242,11 +291,11 @@ WantedBy=multi-user.target
 
 说明：
 
-- 使用 `pnpm start:prod`，对应 `node dist/main`（见 `package.json`）。
+- 使用 `pnpm start:prod`，对应 `node dist/src/main`（见 `package.json`）。
 - `EnvironmentFile` 指向 `.env`，统一管理环境变量。
 - `After=postgresql.service` 确保数据库服务先启动。
 
-### 8.3 重新加载并启动服务
+### 9.2 重新加载并启动服务
 
 ```bash
 sudo systemctl daemon-reload
@@ -262,24 +311,18 @@ journalctl -u lcygzback -f
 
 ---
 
-## 9. 生产运行方式二：PM2（可选）
-
-如果不想用 systemd，可以使用 PM2：
-
-```bash
-npm install -g pm2
-
-cd /opt/lcygzback
-NODE_ENV=production pm2 start dist/main.js --name lcygzback
-
-# 开机自启
-pm2 startup systemd
-pm2 save
-```
-
----
-
 ## 10. 反向代理与 HTTPS（以 Nginx 为例）
+
+在当前架构下：
+
+- **HTTPS/SSL 终止点在 Nginx 上**（部署在你的 Ubuntu 服务器上）。
+- NestJS 应用本身只监听本地 HTTP 端口（例如 `http://127.0.0.1:3000`），不直接处理证书。
+- 前端（无论是本机静态托管还是托管在其他平台）通过浏览器访问 `https://www.guzhenscjy.cn`，只要这个域名前面是 Nginx，SSL 就由 Nginx 负责。
+
+如果未来前端单独托管在其他平台，并使用不同的域名或子域名（例如 `app.guzhenscjy.cn`），则：
+
+- 对外入口在前端平台时，该平台需要为对应域名配置证书；
+- 你的这台后端服务器则为自己的域名（例如 `api.guzhenscjy.cn`）配置证书。
 
 ### 10.1 安装 Nginx
 
@@ -289,7 +332,7 @@ sudo apt install -y nginx
 
 ### 10.2 配置虚拟主机
 
-假设域名为 `example.com`，应用在本地 `3000` 端口：
+你的域名为 `www.guzhenscjy.cn`，应用在本地 `3000` 端口：
 
 ```bash
 sudo nano /etc/nginx/sites-available/lcygzback.conf
@@ -300,7 +343,7 @@ sudo nano /etc/nginx/sites-available/lcygzback.conf
 ```nginx
 server {
     listen 80;
-    server_name example.com;
+    server_name www.guzhenscjy.cn;
 
     location / {
         proxy_pass         http://127.0.0.1:3000;
@@ -331,7 +374,7 @@ sudo systemctl reload nginx
 ```bash
 sudo apt install -y certbot python3-certbot-nginx
 
-sudo certbot --nginx -d example.com
+sudo certbot --nginx -d www.guzhenscjy.cn
 ```
 
 按提示完成证书签发后，Nginx 会自动生成 HTTPS 配置和自动续期任务。
@@ -353,17 +396,11 @@ pnpm install
 pnpm prisma migrate deploy
 pnpm build
 
-# 重启服务
-sudo systemctl restart lcygzback
+# 使用 PM2 重启服务
+pm2 restart lcygzback
 ```
 
 ### 11.2 查看日志
-
-```bash
-journalctl -u lcygzback -f
-```
-
-若使用 PM2：
 
 ```bash
 pm2 logs lcygzback
@@ -400,6 +437,5 @@ pm2 logs lcygzback
    - `GET /submissions/final` 能返回分组后的最新作品。
    - `GET /submissions/:id/download` 能正确下载文件。
 4. 如配置 Nginx：
-   - 访问 `http://example.com/` 或 `https://example.com/` 能透传到 Nest 应用。
+   - 访问 `http://www.guzhenscjy.cn/` 或 `https://www.guzhenscjy.cn/` 能透传到 Nest 应用。
 5. 确认 `uploads/` 权限正确，能写入和读取文件。
-
