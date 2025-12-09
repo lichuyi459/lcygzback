@@ -67,15 +67,31 @@ export class SubmissionsController {
 
     const originalExt = path.extname(submission.fileName);
     const storedExt = path.extname(submission.storedFileName);
-    const ext = originalExt || storedExt;
+    const ext = originalExt || storedExt || '';
 
-    const safeStudentName = submission.studentName.replace(/[\"\\/]/g, '_');
-    const downloadName = `${submission.grade}-${submission.classNumber}-${safeStudentName}${ext}`;
+    // Build a safe download name:
+    // 1) 去掉换行符，避免 header 注入
+    // 2) 替换容易导致路径问题的字符
+    const rawStudentName = submission.studentName ?? '';
+    const safeStudentName = rawStudentName
+      .replace(/[\r\n]/g, ' ')
+      .replace(/[\"\\\/]/g, '_');
 
-    res.set({
-      'Content-Type': submission.fileType || 'application/octet-stream',
-      'Content-Disposition': `attachment; filename="${downloadName}"`,
-    });
+    const downloadNameBase =
+      `${submission.grade}-${submission.classNumber}-${safeStudentName}`.trim() ||
+      'download';
+
+    const downloadName = `${downloadNameBase}${ext}`;
+
+    // 设置内容类型
+    res.setHeader(
+      'Content-Type',
+      submission.fileType || 'application/octet-stream',
+    );
+
+    // 使用 Express 的 attachment 辅助方法生成合法的 Content-Disposition，
+    // 它会对非 ASCII 字符进行正确编码，避免 ERR_INVALID_CHAR。
+    res.attachment(downloadName);
 
     return new StreamableFile(stream);
   }
