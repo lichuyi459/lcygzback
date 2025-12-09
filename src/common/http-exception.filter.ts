@@ -12,6 +12,10 @@ export class HttpExceptionFilter implements ExceptionFilter {
     const ctx = host.switchToHttp();
     const response = ctx.getResponse();
 
+    // Log all exceptions so that unexpected 500 errors can be diagnosed in production.
+    // eslint-disable-next-line no-console
+    console.error('[HttpExceptionFilter] exception:', exception);
+
     let status = HttpStatus.INTERNAL_SERVER_ERROR;
     let message: unknown = 'Internal server error';
     let error: string | undefined;
@@ -46,4 +50,3 @@ export class HttpExceptionFilter implements ExceptionFilter {
     response.status(status).json(body);
   }
 }
-
